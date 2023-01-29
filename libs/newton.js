@@ -1,46 +1,47 @@
-const Newton = { version: "1.0.0" }; // Oleg Mojivic
+const version = "1.0.1"; // Oleg Mojivic
 
-Newton.Norm = function (v) {
+const Norm = (v) => {
   return Math.sqrt(
-    v.reduce(function (s, e) {
+    v.reduce((s, e) => {
       return s + e * e;
     }, 0)
   );
 };
 
-Newton.Dot = function (a, b) {
-  var s = 0;
-  for (var i in a) s += a[i] * b[i];
+const Dot = (a, b) => {
+  let s = 0;
+  for (const i in a) s += a[i] * b[i];
   return s;
 };
 
-// QR - decomposition A=QR of matrix A
-Newton.QRDec = function (A) {
-  var m = A.length,
-    R = [];
-  for (var j in A) {
+// QR - decomposition A = QR of matrix A
+const QRDec = (A) => {
+  const m = A.length;
+  const R = [];
+
+  for (const j in A) {
     R[j] = [];
-    for (var i in A) R[j][i] = 0;
+    for (const i in A) R[j][i] = 0;
   }
 
-  var Q = [];
-  for (var i in A) {
+  const Q = [];
+  for (const i in A) {
     Q[i] = [];
-    for (var j in A[0]) Q[i][j] = A[i][j];
+    for (const j in A[0]) Q[i][j] = A[i][j];
   }
 
   // Q is a copy of A
-  for (var i = 0; i < m; i++) {
-    var e = Q[i],
-      r = Math.sqrt(Newton.Dot(e, e));
-    if (r == 0) throw "Newton.QRDec: singular matrix";
+  for (let i = 0; i < m; i++) {
+    let e = Q[i];
+    let r = Math.sqrt(Dot(e, e));
+    if (r == 0) throw new Error("QRDec: singular matrix");
     R[i][i] = r;
-    for (var k in e) e[k] /= r;
+    for (let k in e) e[k] /= r;
     // normalization
-    for (var j = i + 1; j < m; j++) {
-      var q = Q[j],
-        s = Newton.Dot(e, q);
-      for (var k in q) q[k] -= s * e[k];
+    for (let j = i + 1; j < m; j++) {
+      const q = Q[j];
+      const s = Dot(e, q);
+      for (let k in q) q[k] -= s * e[k];
       // orthogonalization
       R[j][i] = s;
     }
@@ -50,26 +51,27 @@ Newton.QRDec = function (A) {
 
 // QR - backsubstitution
 // input: matrices Q,R, array b; output: array x such that QRx=b
-Newton.QRBack = function (Q, R, b) {
-  var m = Q.length,
-    c = new Array(m),
-    x = new Array(m);
-  for (var i in Q) {
+const QRBack = (Q, R, b) => {
+  const m = Q.length;
+  const c = new Array(m);
+  const x = new Array(m);
+  for (const i in Q) {
     // c = QˆT b
     c[i] = 0;
-    for (var k in b) c[i] += Q[i][k] * b[k];
+    for (const k in b) c[i] += Q[i][k] * b[k];
   }
-  for (var i = m - 1; i >= 0; i--) {
+  for (let i = m - 1; i >= 0; i--) {
     // back substitution
-    for (var s = 0, k = i + 1; k < m; k++) s += R[k][i] * x[k];
+    let s = 0;
+    for (let k = i + 1; k < m; k++) s += R[k][i] * x[k];
     x[i] = (c[i] - s) / R[i][i];
   }
   return x;
 };
 
 // calculates inverse of matrix A
-Newton.Inverse = function (A) {
-  var t = Newton.QRDec(A),
+const Inverse = (A) => {
+  var t = QRDec(A),
     Q = t[0],
     R = t[1];
   var m = [];
@@ -78,12 +80,12 @@ Newton.Inverse = function (A) {
     for (const k in A) {
       n[k] = k == i ? 1 : 0;
     }
-    m[i] = Newton.QRBack(Q, R, n);
+    m[i] = QRBack(Q, R, n);
   }
   return m;
 };
 
-Newton.Zero = function (fs, x, opts = {} /* acc, dx, max */) {
+const Zero = (fs, x, opts = {} /* acc, dx, max */) => {
   // Newton's root-finding method
 
   if (opts.acc == undefined) opts.acc = 1e-6;
@@ -110,10 +112,10 @@ Newton.Zero = function (fs, x, opts = {} /* acc, dx, max */) {
         J[k][i] = (v[i] + minusfx[i]) / opts.dx;
         x[k] -= opts.dx;
       }
-    var t = Newton.QRDec(J),
+    var t = QRDec(J),
       Q = t[0],
       R = t[1],
-      Dx = Newton.QRBack(Q, R, minusfx);
+      Dx = QRBack(Q, R, minusfx);
     // Newton's step
     var s = 2;
     do {
@@ -130,19 +132,16 @@ Newton.Zero = function (fs, x, opts = {} /* acc, dx, max */) {
       for (const i in x) {
         minusfz[i] = -v[i];
       }
-    } while (
-      Newton.Norm(minusfz) > (1 - s / 2) * Newton.Norm(minusfx) &&
-      s > 1 / 128
-    );
+    } while (Norm(minusfz) > (1 - s / 2) * Norm(minusfx) && s > 1 / 128);
     minusfx = minusfz;
     x = z;
     // step done
-  } while (Newton.Norm(minusfx) > opts.acc);
+  } while (Norm(minusfx) > opts.acc);
 
   return x;
 };
 
-Newton.Solve = function (fs, res, opts = {}) {
+const Solve = (fs, res, opts = {}) => {
   if (typeof res != "object") res = [typeof res == "number" ? +res : 0];
   var _fs = fs,
     fs = function (x) {
@@ -159,9 +158,19 @@ Newton.Solve = function (fs, res, opts = {}) {
     for (var i in res) start[i] = 0;
   }
 
-  var n = Newton.Zero(fs, start, opts);
+  var n = Zero(fs, start, opts);
   if (n && n.length == 1) n = n[0];
   return n;
 };
 
+const Newton = {
+  version,
+  Norm,
+  Dot,
+  QRDec,
+  QRBack,
+  Inverse,
+  Zero,
+  Solve,
+};
 export default Newton;
