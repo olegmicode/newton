@@ -71,10 +71,10 @@ const QRBack = (Q, R, b) => {
 
 // calculates inverse of matrix A
 const Inverse = (A) => {
-  var t = QRDec(A),
-    Q = t[0],
-    R = t[1];
-  var m = [];
+  const t = QRDec(A);
+  const Q = t[0];
+  const R = t[1];
+  const m = [];
   for (const i in A) {
     n = [];
     for (const k in A) {
@@ -85,20 +85,20 @@ const Inverse = (A) => {
   return m;
 };
 
-const Zero = (fs, x, opts = {} /* acc, dx, max */) => {
+const Zero = (fs, x, opts = {}) => {
   // Newton's root-finding method
 
   if (opts.acc == undefined) opts.acc = 1e-6;
   if (opts.dx == undefined) opts.dx = 1e-3;
   if (opts.max == undefined) opts.max = 40; // max iterations
-  var J = [];
+  const J = [];
   for (const i in x) {
     J[i] = [];
     for (const j in x) J[i][j] = 0;
   }
 
-  var minusfx = [];
-  var v = fs(x);
+  let minusfx = [];
+  let v = fs(x);
   if (v == null) throw "unable to compute fs at " + JSON.stringify(x);
   for (const i in x) minusfx[i] = -v[i];
   do {
@@ -112,21 +112,23 @@ const Zero = (fs, x, opts = {} /* acc, dx, max */) => {
         J[k][i] = (v[i] + minusfx[i]) / opts.dx;
         x[k] -= opts.dx;
       }
-    var t = QRDec(J),
-      Q = t[0],
-      R = t[1],
-      Dx = QRBack(Q, R, minusfx);
+    let t = QRDec(J);
+    let Q = t[0];
+    let R = t[1];
+    let Dx = QRBack(Q, R, minusfx);
     // Newton's step
-    var s = 2;
+    let s = 2;
+    let z = [];
+    let minusfz = [];
     do {
       // simple backtracking line search
       s = s / 2;
-      var z = [];
+      z = [];
       for (const i in x) {
         z[i] = x[i] + s * Dx[i];
       }
 
-      var minusfz = [];
+      minusfz = [];
       v = fs(z);
       if (v == null) throw "unable to compute fs at " + JSON.stringify(z);
       for (const i in x) {
@@ -141,24 +143,33 @@ const Zero = (fs, x, opts = {} /* acc, dx, max */) => {
   return x;
 };
 
-const Solve = (fs, res, opts = {}) => {
+const Solve = (
+  fs,
+  res,
+  opts = {
+    acc: 1e-6,
+    dx: 1e-3,
+    max: 40,
+  }
+) => {
   if (typeof res != "object") res = [typeof res == "number" ? +res : 0];
-  var _fs = fs,
-    fs = function (x) {
-      var r = _fs(x);
-      if (typeof r == "number") r = [r];
-      for (var i in r) r[i] -= res[i];
-      return r;
-    };
+  const _fs = fs;
 
-  var start = [];
+  fs = function (x) {
+    const r = _fs(x);
+    if (typeof r == "number") r = [r];
+    for (const i in r) r[i] -= res[i];
+    return r;
+  };
+
+  const start = [];
   if (opts.start) {
     start = opts.start;
   } else {
-    for (var i in res) start[i] = 0;
+    for (const i in res) start[i] = 0;
   }
 
-  var n = Zero(fs, start, opts);
+  const n = Zero(fs, start, opts);
   if (n && n.length == 1) n = n[0];
   return n;
 };
